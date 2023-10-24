@@ -192,6 +192,6 @@ Finally, let's view our account information again because we have made a lot of 
     }
 If we get a result like the one above, our transactions and account information have been recorded without any problems and we can list them whenever we want.
 
-![Logo](images/Screenshot_5.png)
+![Logo](images/Screenshot_6.png)
 
 All these processes were to understand how a simple banking application basically works. Basically, banking systems have developed based on these steps.
