@@ -1,0 +1,26 @@
+# Server configuration
+server:
+  port: 8080
+# Logging configuration
+logging:
+  level:
+    root: info
+# Database configuration
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/eterationDB
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL10Dialect
+        format_sql: true
+# OpenAPI documentation path configuration localhost:8080/bank-swagger-ui
+springdoc:
+  swagger-ui:
+    path: /eteration-swagger-ui
