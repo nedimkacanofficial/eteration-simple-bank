@@ -20,7 +20,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQL10Dialect
         format_sql: true
-# OpenAPI documentation path configuration localhost:8080/bank-swagger-ui
+# OpenAPI documentation path configuration localhost:8080/eteration-swagger-ui
 springdoc:
   swagger-ui:
     path: /eteration-swagger-ui

@@ -6,17 +6,14 @@ import com.eteration.simplebanking.dto.BillPaymentDTO;
 import com.eteration.simplebanking.exception.InsufficientBalanceException;
 import com.eteration.simplebanking.mapper.AccountMapper;
 import com.eteration.simplebanking.model.*;
-import com.eteration.simplebanking.repository.TransactionRepository;
 import com.eteration.simplebanking.services.AccountService;
+import com.eteration.simplebanking.services.TransactionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 // This class is a place holder you can change the complete implementation
 @RestController
@@ -26,7 +23,7 @@ import java.util.UUID;
 @Tag(name = "Account Controller")
 public class AccountController {
     private final AccountService service;
-    private final TransactionRepository transactionRepository;
+    private final TransactionService transactionService;
 
     /**
      * REST service used to retrieve the information of an account with the specified account number.
@@ -46,78 +43,56 @@ public class AccountController {
     }
 
     /**
-     * REST service used to deposit a specified amount into an account balance.
+     * Endpoint to credit funds to a specified account.
      *
-     * @param accountNumber    The account number into which the deposit will be made.
-     * @param amountRequestDTO DTO (Data Transfer Object) used for the deposit transaction.
-     * @return ResponseEntity containing the approval code and HTTP status if the operation is successful.
-     * If the account is not found or the deposited amount is invalid, in case of an error, it returns an empty ResponseEntity with HttpStatus.BAD_REQUEST.
+     * @param accountNumber    The account number to which funds will be credited.
+     * @param amountRequestDTO The request data containing the amount to be credited.
+     * @return A ResponseEntity containing the TransactionStatus representing the result of the transaction.
      */
     @PostMapping("/credit/{accountNumber}")
-    public ResponseEntity<TransactionStatus> credit(@PathVariable String accountNumber, @RequestBody AmountRequestDTO amountRequestDTO) throws InsufficientBalanceException {
+    public ResponseEntity<TransactionStatus> credit(@PathVariable String accountNumber, @RequestBody AmountRequestDTO amountRequestDTO) {
         log.info("REST to request credit() accountNumber: {} and amountRequestDTO: {}", accountNumber, amountRequestDTO);
-        Account account = service.findAccount(accountNumber);
-        if (account != null && amountRequestDTO.getAmount() > 0) {
-            Transaction transaction = new DepositTransaction(amountRequestDTO.getAmount());
-            transaction.setDate(LocalDateTime.now());
-            transaction.setType(transaction.getClass().getSimpleName());
-            transaction.setApprovalCode(UUID.randomUUID().toString());
-            account.post(transaction);
-            this.transactionRepository.save(transaction);
-            return new ResponseEntity<>(new TransactionStatus(transaction.getApprovalCode()), HttpStatus.OK);
+        try {
+            TransactionStatus transactionStatus = this.transactionService.saveTransaction(accountNumber, new DepositTransaction(amountRequestDTO.getAmount()));
+            return new ResponseEntity<>(transactionStatus, HttpStatus.OK);
+        } catch (InsufficientBalanceException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     /**
-     * REST service used for withdrawing a specified amount of money from an account balance.
+     * Endpoint to debit funds from a specified account.
      *
-     * @param accountNumber    The account number from which the withdrawal will be made.
-     * @param amountRequestDTO DTO (Data Transfer Object) used for the withdrawal transaction.
-     * @return ResponseEntity containing the approval code and HTTP status if the operation is successful.
-     * If the account is not found or the withdrawal amount is invalid, or in case of insufficient balance, an exception is thrown.
-     * @throws InsufficientBalanceException Exception thrown in case of insufficient balance.
+     * @param accountNumber    The account number from which funds will be debited.
+     * @param amountRequestDTO The request data containing the amount to be debited.
+     * @return A ResponseEntity containing the TransactionStatus representing the result of the transaction.
      */
     @PostMapping("/debit/{accountNumber}")
-    public ResponseEntity<TransactionStatus> debit(@PathVariable String accountNumber, @RequestBody AmountRequestDTO amountRequestDTO) throws InsufficientBalanceException {
+    public ResponseEntity<TransactionStatus> debit(@PathVariable String accountNumber, @RequestBody AmountRequestDTO amountRequestDTO) {
         log.info("REST to request debit() accountNumber: {} and amountRequestDTO: {}", accountNumber, amountRequestDTO);
-        Account account = service.findAccount(accountNumber);
-        if (account != null && amountRequestDTO.getAmount() > 0) {
-            Transaction transaction = new WithdrawalTransaction(amountRequestDTO.getAmount());
-            transaction.setDate(LocalDateTime.now());
-            transaction.setType(transaction.getClass().getSimpleName());
-            transaction.setApprovalCode(UUID.randomUUID().toString());
-            account.post(transaction);
-            transactionRepository.save(transaction);
-            return new ResponseEntity<>(new TransactionStatus(transaction.getApprovalCode()), HttpStatus.OK);
-        } else {
-            throw new InsufficientBalanceException("Insufficient balance");
+        try {
+            TransactionStatus transactionStatus = this.transactionService.saveTransaction(accountNumber, new WithdrawalTransaction(amountRequestDTO.getAmount()));
+            return new ResponseEntity<>(transactionStatus, HttpStatus.OK);
+        } catch (InsufficientBalanceException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     /**
-     * REST service used for bill payment transactions.
+     * Endpoint for making a bill payment from a specified account.
      *
-     * @param accountNumber  The account number of the account for which the bill payment is to be made.
-     * @param billPaymentDTO DTO (Data Transfer Object) used for the bill payment transaction.
-     * @return ResponseEntity containing the approval code and HTTP status if the operation is successful.
-     * If the account is not found or the payment amount is invalid, or in case of insufficient balance, an exception is thrown.
-     * @throws InsufficientBalanceException Exception thrown in case of insufficient balance.
+     * @param accountNumber  The account number from which the bill payment will be made.
+     * @param billPaymentDTO The request data containing the payee information and the bill payment amount.
+     * @return A ResponseEntity containing the TransactionStatus representing the result of the bill payment transaction.
      */
     @PostMapping("/bill/{accountNumber}")
-    public ResponseEntity<TransactionStatus> billPayment(@PathVariable String accountNumber, @RequestBody BillPaymentDTO billPaymentDTO) throws InsufficientBalanceException {
+    public ResponseEntity<TransactionStatus> billPayment(@PathVariable String accountNumber, @RequestBody BillPaymentDTO billPaymentDTO) {
         log.info("REST to request billPayment() accountNumber: {} and billPaymentDTO: {}", accountNumber, billPaymentDTO);
-        Account account = service.findAccount(accountNumber);
-        if (account != null && billPaymentDTO.getAmount() > 0) {
-            Transaction transaction = new BillPaymentTransaction(billPaymentDTO.getPayee(), billPaymentDTO.getAmount());
-            transaction.setDate(LocalDateTime.now());
-            transaction.setType(transaction.getClass().getSimpleName());
-            transaction.setApprovalCode(UUID.randomUUID().toString());
-            account.post(transaction);
-            transactionRepository.save(transaction);
-            return new ResponseEntity<>(new TransactionStatus(transaction.getApprovalCode()), HttpStatus.OK);
-        } else {
-            throw new InsufficientBalanceException("Insufficient balance");
+        try {
+            TransactionStatus transactionStatus = this.transactionService.saveTransaction(accountNumber, new BillPaymentTransaction(billPaymentDTO.getPayee(), billPaymentDTO.getAmount()));
+            return new ResponseEntity<>(transactionStatus, HttpStatus.OK);
+        } catch (InsufficientBalanceException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
