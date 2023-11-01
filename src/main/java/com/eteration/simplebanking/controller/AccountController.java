@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 // This class is a place holder you can change the complete implementation
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/account/v1")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Account Controller")
