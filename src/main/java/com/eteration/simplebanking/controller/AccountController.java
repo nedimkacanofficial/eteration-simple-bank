@@ -28,7 +28,6 @@ public class AccountController {
     /**
      * REST service used to retrieve the information of an account with the specified account number.
      *
-     * @param accountNumber The account number of the account to be retrieved.
      * @return If the account is found, it returns an ResponseEntity with the account information and HTTP status HttpStatus.OK.
      * If the account is not found, it returns an empty ResponseEntity with HttpStatus.NOT_FOUND.
      */
